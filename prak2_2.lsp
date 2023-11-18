@@ -158,7 +158,7 @@
 ))
 
 
-; получаем множество нетерминальных символов в правиле
+; получаем множество терминальных символов в правиле
 (defun set_in_rule (Rule Set_r) (cond
 	((null Rule) Set_r)
 	((null (cddr Rule)) (cond
@@ -170,7 +170,7 @@
 ))
 
 
-; получаем множество терминальных символов в правиле
+; получаем множество нетерминальных символов в правиле
 (defun state_set_in_rule (Rule Set) (cond
 	((null Rule) Set)
 	((null (cddr Rule)) (cond
@@ -283,8 +283,8 @@
 ; чтобы не было двух состояний вида (Y X) (X Y), которые являются одним и тем же состоянием
 (defun find_orders (Gram Orders) (cond
 	((null Gram) Orders)
-	((null (cdaar Gram)) (find_orders (cdr Gram) Orders))
-	(T (find_orders (cdr Gram) (cons (caar Gram) Orders)))
+	((null (cadr Gram)) (find_orders (cdr Gram) Orders))
+	(T (find_orders (cdr Gram) (cons (car Gram) Orders)))
 ))
 
 
@@ -314,7 +314,8 @@
 
 ; очистка от лишних состояний
 (defun clear (Gram NewGram) (cond
-    	((null Gram) (check_all_orders NewGram (find_orders NewGram nil)))
+    	((null Gram) (check_all_orders NewGram (find_orders (get_all_states NewGram nil) nil)))
+        ((null (caddar Gram)) (clear (cdr Gram) NewGram))
     	(T (clear (cdr Gram) (cons (cons (caar Gram) (cons (cadar Gram) (cons (clear_rule (reverse (clear_rule (reverse (caddar Gram))))) nil))) NewGram)))
 ))
                                 
@@ -348,6 +349,7 @@
     	((and (null Rule) (not (eq (member 'S State) nil))) '(#\\ #\* S))
     	((null Rule) Rule)
     	((and (eq (car Rule) 'S) Flag) (cons '(S S) (check_fin (cdr Rule) State Flag)))
+    	((and (not(atom (car Rule))) (null (cdar Rule))) (cons (caar Rule) (check_fin (cdr Rule) State Flag)))
     	(T (cons (car Rule) (check_fin (cdr Rule) State Flag)))
 ))
 
@@ -467,3 +469,5 @@
 (print (main '(((H) #\1 (A)) ((H) #\1 (A)) ((A) #\0 (C)) ((C) #\0 (S)) ((C) #\1 (D)) ((C) #\1 (D)))))
 (terpri)
 (print (main '(((H) #\1 (A)) ((H) #\1 (A)) ((A) #\0 (B)) ((A) #\0 (C)) ((C) #\0 (S)) ((C) #\1 (D)) ((C) #\1 (D)))))
+(terpri)
+(print (main '(((H) #\a (S)) ((H) #\b (C)) ((H) #\b (B)) ((H) #\c (A)) ((A) #\a (A)) ((A) #\b (C)) ((A) #\b (B)))))
