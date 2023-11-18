@@ -37,12 +37,14 @@
 
 ; соединяем правила для одного состояния в один список
 (defun plus (A L R) (cond
-	((null L) (cons (cons A nil) (replace_eq (cons '= (check_same_in_rule(level 2 R))) 0))) ;(replace_eq (cons '= (cons (check_same_in_rule (level 2 R)) nil)) 0)))
+	((null L) (cons (cons A nil) (replace_eq (cons '= (check_same_in_rule(level 2 R))) 0))) 
 	((eq A (caaar L)) (plus A (cdr L) (cons (cdar L) R)))
 	(T (plus A (cdr L) R))
 ))
 
 
+; проверка на "одинаковость" в переходах: например, A —> aB | aB будет переведено в А —> aB
+; такой автомат будет детерминированным
 (defun check_same_in_rule (Rule) (cond
     	((null (cdr Rule)) Rule)
     	((null (cddr Rule)) Rule)
@@ -50,6 +52,7 @@
     	((and (eq (car Rule) (cadddr Rule)) (eq (cadr Rule) (car (cddddr Rule))) (check_same_in_rule (cdddr Rule))))
 	(T (cons (car Rule) (cons (cadr Rule) (cons '= (check_same_in_rule (cdddr Rule))))))
 ))
+
 
 ; расставляем разделители внутри правила
 (defun replace_eq (S Flag) (cond
@@ -61,25 +64,37 @@
 ))
 
 
+; получаем все состояния в грамматике
 (defun get_all_states (Gram States) (cond
 	((null Gram) States)
 	(T (get_all_states (cdr Gram) (cons (caar Gram) (get_states (cddar Gram) States))))
 ))
 
 
+; получаем состояния из правила
 (defun get_states (Rule States) (cond
 	((null (cddr Rule)) States)
 	((is_in (cdar Rule) States) (get_states (cdddr Rule) States))
 	(T (get_states (cdddr Rule) (cons (cdar Rule) States)))
 ))
 
+
+; проверка на наличие спискового элемента в списке списков
 (defun is_in (El L) (cond
 	((null L) nil)
 	((check_similarity El (car L)) T)
 	(T (is_in El (cdr L)))
 ))
 
-; здесь проверяем, одинаковые ли длины, и если да, то передаем на проверку "равенства" списков
+
+; проверяем на равенство, чтобы вернуть список
+(defun is_equal (L1 L2) (cond
+	((eq (len L1) (len L2)) (is_similar_set L1 L2))
+	(T L1)
+))
+
+
+; здесь проверяем, одинаковые ли длины, и если да, то передаем на проверку "равенства" списков, возвращаем T/nil
 (defun check_similarity (L1 L2) (cond
 	((eq (len L1) (len L2)) (is_similar_els L1 L2))
 ))
@@ -91,11 +106,14 @@
 	((member (car L1) L2) (is_similar_set (cdr L1) L2))
 ))
 
+
+; проверка на совпадение по множеству для приведения (А В), (В А) —> (B A), (B A)
 (defun is_similar_set (L1 L2) (cond
 	((null L1) L2)
 	((member (car L1) L2) (is_similar_set (cdr L1) L2))
 	(T L1)
 ))
+
 
 ; удаляем S из грамматики после получения ДКА
 (defun delete_S (Gram) (cond
@@ -104,6 +122,7 @@
 ))
 
 
+; удаляем S из правила
 (defun del_S (Rule) (cond
 	((null Rule) Rule)
 	((eq (car Rule) 'S ) (del_S (cdr Rule)))
@@ -121,6 +140,7 @@
     	(T (to_DKA Rule (cdr Set_r) (cons '(#\\) (cons (car (update (car Set_r) Rule nil)) NewRule)) (cons (cadr (update (car Set_r) Rule nil)) NewState)))                                          
 ))
 
+
 ; получаем новые состояния
 (defun update (A Rule New) (cond
 	((null (cddr Rule)) (cond
@@ -137,6 +157,7 @@
 	(T (update A (cdddr Rule) New))
 ))
 
+
 ; получаем множество нетерминальных символов в правиле
 (defun set_in_rule (Rule Set_r) (cond
 	((null Rule) Set_r)
@@ -147,6 +168,23 @@
 	((member (car Rule) Set_r) (set_in_rule (cdddr Rule) Set_r))
 	(T (set_in_rule (cdddr Rule) (cons (car Rule) Set_r)))
 ))
+
+
+; получаем множество терминальных символов в правиле
+(defun state_set_in_rule (Rule Set) (cond
+	((null Rule) Set)
+	((null (cddr Rule)) (cond
+        ((and (atom (cadr Rule)) (is_in (cons (cadr Rule) nil) Set) Set)) 
+        ((atom (cadr Rule)) (cons (cons (cadr Rule) nil) Set))
+        ((is_in (cadr Rule) Set) Set)        
+		(T (cons (cadr Rule) Set))
+	))
+    ((and (atom (cadr Rule)) (is_in (cons (cadr Rule) nil) Set)) (state_set_in_rule (cdddr Rule) Set))
+    ((atom (cadr Rule)) (state_set_in_rule (cdddr Rule) (cons (cons (cadr Rule)nil) Set)))           
+	((is_in (cadr Rule) Set) (state_set_in_rule (cdddr Rule) Set))
+	(T (state_set_in_rule (cdddr Rule) (cons (cadr Rule) Set)))
+))
+
 
 ; проверка на детерминированность
 (defun is_DKA (KA NewStates AllStates Flag) (cond
@@ -170,7 +208,7 @@
 ))  
 
 
-; проверяем правила на "детерминированность"
+; проверяем правила на детерминированность
 (defun check_rule (Rule Unique) (cond
 	((null Rule) T)
 	((null (cddr Rule)) (eq (member (car Rule) Unique) nil))
@@ -178,6 +216,8 @@
 	(T (check_rule (cdddr Rule) (cons (car Rule) Unique)))
 ))
 
+
+; проверяем, появились ли новые состояния после детерминирования
 (defun is_empty_new (Gram) (cond
 	((null Gram) T)
     	((null (cdar Gram)) nil)
@@ -185,6 +225,7 @@
 ))
 
 
+; обновление новых состояний и либо возвращаем ДКА, либо еще раз детерминируем
 (defun update_states1 (Rules Full) (cond
     ((is_empty_new (update_states Rules Full)) (update_states Rules Full))
     (T (level 2 (cons (update_states1 (to_new_states (update_states Rules Full) nil (get_all_states (to_old_states (update_states Rules Full) nil) nil)) (cons Full (to_old_states (update_states Rules Full) nil))) (cons (to_old_states (update_states Rules Full) nil) nil))))
@@ -219,8 +260,6 @@
     	((and (eq (atom (caaar Rules)) nil) (member NewState (caaar Rules))) (find_state NewState (cdr Rules) (cons (cons '(#\\) (cddaar Rules)) NewRule)))
     	(T (find_state NewState (cdr Rules) NewRule))
 ))
-
-
 ; --------------------------------------------
 
 ; БЛОК ПОЛУЧЕНИЯ ДЕТЕРМИНИРОВАННОГО КОНЕЧНОГО АВТОМАТА
@@ -232,15 +271,50 @@
 	(T (to_new_states (cdr Gram) NewStates AllStates))
 ))
 
+
+; получаем список только из старых состояний
 (defun to_old_states (Gram OldStates) (cond
 	((null (cdar Gram)) OldStates)
 	(T (to_old_states (cdr Gram) (cons (car Gram) OldStates)))
 ))
 
 
+; получаем "канонический" порядок для новых состояний; к нему приведем все остальные новые, 
+; чтобы не было двух состояний вида (Y X) (X Y), которые являются одним и тем же состоянием
+(defun find_orders (Gram Orders) (cond
+	((null Gram) Orders)
+	((null (cdaar Gram)) (find_orders (cdr Gram) Orders))
+	(T (find_orders (cdr Gram) (cons (caar Gram) Orders)))
+))
+
+
+; проходим по всей грамматике
+(defun check_all_orders (Gram Orders) (cond
+	((null Gram) Gram)
+	(T (cons (cons (caar Gram) (cons '= (check_order Orders (caddar Gram)))) (check_all_orders (cdr Gram) Orders)))
+))
+
+
+; проверяем порядок для приведения состояния (Y X) к состоянию (X Y)
+; проверяем каждое из новых состояний в правиле
+(defun check_order (Orders Rule) (cond
+	((null Orders) (cons Rule nil))
+	(T (check_order (cdr Orders) (check_state_order (car Orders) Rule)))
+))
+
+
+; проход внутри правила, ищем "списковое" состояние.
+; если списковое, то передаем на проверку
+(defun check_state_order (State Rule) (cond
+    ((null Rule) Rule)
+	((atom (car Rule)) (cons (car Rule) (check_state_order State (cdr Rule))))
+	(T (cons (is_equal (car Rule) State) (check_state_order State (cdr Rule))))
+))
+
+
 ; очистка от лишних состояний
 (defun clear (Gram NewGram) (cond
-    	((null Gram) NewGram)
+    	((null Gram) (check_all_orders NewGram (find_orders NewGram nil)))
     	(T (clear (cdr Gram) (cons (cons (caar Gram) (cons (cadar Gram) (cons (clear_rule (reverse (clear_rule (reverse (caddar Gram))))) nil))) NewGram)))
 ))
                                 
@@ -250,18 +324,31 @@
     	(T Rule))) 
 
 
-(defun check_final_state (Gram) (cond
-	((null Gram) Gram)
-    	(T (cons (cons (caar Gram) (cons '= (cons (check_fin (caddar Gram) (caar Gram)) nil))) (check_final_state (cdr Gram))))
+; проверяем, появились ли новые конечные состояния
+(defun if_S_in (Gram) (cond
+	((null Gram) nil)
+	((not (eq (member 'S (caar Gram)) nil)) T)
+	(T (if_S_in (cdr Gram)))
 ))
 
 
-(defun check_fin (Rule State) (cond
-    	((and (null Rule) (member 'S State)) '(#\\ #\* S))
+; 
+(defun check_final_state (Gram Flag Check) (cond
+	((null Gram) (cond
+                     (Flag '(((S S) = (#\* S))))
+                     (T Gram)
+                  ))
+	((= Check 0) (check_final_state Gram (if_S_in Gram) 1))
+    (T (cons (cons (caar Gram) (cons '= (cons (check_fin (caddar Gram) (caar Gram) Flag) nil))) (check_final_state (cdr Gram) Flag 1)))
+))
+
+
+; проверяем состояния S, чтобы добавить переходы, если у нас несколько конечных состояний
+(defun check_fin (Rule State Flag) (cond
+    	((and (null Rule) (not (eq (member 'S State) nil))) '(#\\ #\* S))
     	((null Rule) Rule)
-    	((and (eq (car Rule) 'S) (not (eq (member 'S State) T))) (cons '(S S) (check_fin (cdr Rule) State)))
-    	((eq (car Rule) 'S) (cons '(S S) (append (check_fin (cdr Rule) State) '(#\\ #\* S))))
-    	(T (cons (car Rule) (check_fin (cdr Rule) State)))
+    	((and (eq (car Rule) 'S) Flag) (cons '(S S) (check_fin (cdr Rule) State Flag)))
+    	(T (cons (car Rule) (check_fin (cdr Rule) State Flag)))
 ))
 
 
@@ -278,23 +365,73 @@
 	((atom (cadr Rule)) (to_graph State (cdddr Rule) (cons (cons State (cons (car Rule) (cons (cons (cadr Rule) nil) nil))) Graph)))
 	(T (to_graph State (cdddr Rule) (cons (cons State (cons (car Rule) (cons (cadr Rule) nil))) Graph)))
 ))
+; --------------------------------------------
 
+
+; БЛОК УДАЛЕНИЯ НЕДОСТИЖИМЫХ СОСТОЯНИЙ
+; находим начальное состояние Н, отправляем состояния, в которые переходит Н и проходим по ним, получая свои состояния
+(defun delete_unreach (Gram) (delete_non Gram (find_others Gram (find_H Gram) (find_H Gram))))
+
+
+; удаляем недостижимые
+(defun delete_non (Gram List) (cond
+    ((null Gram) Gram)
+    ((is_in (caar Gram) List) (cons (car Gram) (delete_non (cdr Gram) List)))
+    (T (delete_non (cdr Gram) List))
+))
+
+
+; находим начальное состояние
+(defun find_H (Gram) (cond
+	((eq (caaar Gram) 'H) (state_set_in_rule (caddar Gram) nil))
+	(T (find_H (cdr Gram)))
+))
+
+
+; проходим по состояниям, которые являются достижимыми
+(defun find_others (Gram Reach AllReach) (cond
+	((null Reach)(cons '(H) AllReach))
+    ((null (find_one Gram (car Reach))) (find_others Gram (cdr Reach) AllReach))
+	(T (find_others Gram (cdr (updated_reach (find_one Gram (car Reach)) Reach AllReach)) (level 2 (cons AllReach (cons (updated_reach (find_one Gram (car Reach)) Reach AllReach) nil)))))
+))
+
+
+; находим состояния, в которые переходит текущее состояние из списка достижимых
+(defun find_one (Gram State) (cond
+    ((null Gram) nil)
+	((check_similarity State (caar Gram)) (state_set_in_rule (caddar Gram) nil))
+	(T (find_one (cdr Gram) State))
+))
+
+
+; добавление в конец
+(defun add_to_end (El L) (cond
+    ((null L) (cons El nil))
+    (T (cons (car L) (add_to_end EL (cdr L))))
+))
+
+
+; обновляем список достижимых
+(defun updated_reach (New Old All) (cond
+	((null New) Old)
+	((is_in (car New) All) (updated_reach (cdr New) Old All))
+	(T (updated_reach (cdr New) (add_to_end (car New) Old) All))
+))
 ; --------------------------------------------
 
 ; БЛОК MAIN
-
 (defun main (KA)
 	(let ((is_DKA_var (is_DKA (make_gram (make_rule KA nil) nil) nil (make_gram (make_rule KA nil) nil) T)))
 	(cond 
         	((eq is_DKA_var T) (print 'deterministic) (delete_S (make_gram (make_rule KA nil) nil)))	
         	(T 
         		(print 'non-deterministic)
-         		;(print(check_final_state(clear (level 2 (cons (update_states1 (to_new_states is_DKA_var nil (get_all_states (make_gram (make_rule KA nil) nil) nil)) (make_gram (make_rule KA nil) nil))  (cons (to_old_states is_DKA_var nil) nil)))nil)))
-         		(let ((gram_with_S (check_final_state(clear(level 2 (cons (update_states1 (to_new_states is_DKA_var nil (get_all_states (make_gram (make_rule KA nil) nil) nil)) (make_gram (make_rule KA nil) nil))  (cons (to_old_states is_DKA_var nil) nil))) nil))))
-         		(print (gram_to_DKA gram_with_S))
+         		(let ((gram_with_S (delete_unreach(check_final_state(clear(level 2 (cons (update_states1 (to_new_states is_DKA_var nil (get_all_states (make_gram (make_rule KA nil) nil) nil)) (make_gram (make_rule KA nil) nil))  (cons (to_old_states is_DKA_var nil) nil))) nil) nil 0))))
+                (print (gram_to_DKA gram_with_S))
          		(delete_S gram_with_S))
 ))))
 
+; ТЕСТЫ
 (print (main '(((H) #\s (S)))))
 (terpri)
 (print (main '(((H) #\a (A)) ((H) #\b (B)) ((H) #\s (S)))))
