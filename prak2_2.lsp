@@ -21,7 +21,7 @@
 (defun make_gram (Rule Unique) (cond
 	((null Rule) Rule)
 	((member (caaar Rule) Unique) (make_gram (cdr Rule) Unique))
-	(T (cons (plus (caaar Rule) Rule nil ) (make_gram (cdr Rule) (cons (caaar Rule) Unique))))
+	(T (cons (plus (caaar Rule) Rule nil) (make_gram (cdr Rule) (cons (caaar Rule) Unique))))
 ))
 
     
@@ -30,6 +30,7 @@
 	((null KA) Gram)
 	(T (make_rule (cdr KA) (cons (change (car KA)) Gram)))
 ))
+
 
 ; приводим к виду ((Состояние) = (Правило))
 (defun change (toRule) (cons (car toRule) (cons '= (cons (cadr toRule) (caddr toRule)))))
@@ -471,3 +472,5 @@
 (print (main '(((H) #\1 (A)) ((H) #\1 (A)) ((A) #\0 (B)) ((A) #\0 (C)) ((C) #\0 (S)) ((C) #\1 (D)) ((C) #\1 (D)))))
 (terpri)
 (print (main '(((H) #\a (S)) ((H) #\b (C)) ((H) #\b (B)) ((H) #\c (A)) ((A) #\a (A)) ((A) #\b (C)) ((A) #\b (B)))))
+(terpri)
+(print (main '(((H) #\a (S)) ((H) #\b (C)) ((H) #\b (B)) ((H) #\c (A)) ((A) #\a (B)) ((A) #\a (D)) ((A) #\b (C)) ((A) #\b (B)))))
