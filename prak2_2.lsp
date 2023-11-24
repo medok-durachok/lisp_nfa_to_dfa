@@ -144,30 +144,30 @@
 (defun to_list_for_rule (r) (cons (car r) (cons (to_one_state (cadr r) nil)nil)))
 
 (defun to_list (l) (cond
-    ((null l) l)
-    (T (cons (cons (to_one_state (car l) nil) nil) (to_list (cdr l))))))
+	((null l) l)
+    	(T (cons (cons (to_one_state (car l) nil) nil) (to_list (cdr l))))))
 
 
 (defun to_one_state (State Atoms) (cond
-    ((null State) (unique Atoms nil))
-    ((atom (car State)) (to_one_state (cdr State) (cons (car State) Atoms)))
-    (T (to_one_state (cdr State) (level 2 (cons (car State) (cons Atoms nil)))))
+    	((null State) (unique Atoms nil))
+    	((atom (car State)) (to_one_state (cdr State) (cons (car State) Atoms)))
+   	(T (to_one_state (cdr State) (level 2 (cons (car State) (cons Atoms nil)))))
 ))
 
 
 (defun unique (Old New) (cond
-    ((null Old) New)
-    ((member (car Old) New) (unique (cdr Old) New))
-    (T (unique (cdr Old) (cons (car Old) New)))
-                            ))
+    	((null Old) New)
+    	((member (car Old) New) (unique (cdr Old) New))
+    	(T (unique (cdr Old) (cons (car Old) New)))
+))
 
 (defun update (A Rule New) (cond
-    ((null (cddr Rule)) (cond 
-                            ((eq A (car Rule)) (cons (cons A (cons (cons (cadr Rule) New) nil)) (cons (cons (cadr  Rule) New) nil)))
-                            (T (cons (cons A (cons New nil)) (cons New nil)))
-                            ))
-    ((eq A (car Rule)) (update A (cdddr Rule) (cons (cadr Rule) New)))
-    (T (update A (cdddr Rule) New))
+    	((null (cddr Rule)) (cond 
+	    	((eq A (car Rule)) (cons (cons A (cons (cons (cadr Rule) New) nil)) (cons (cons (cadr  Rule) New) nil)))
+        	(T (cons (cons A (cons New nil)) (cons New nil)))
+	))
+    	((eq A (car Rule)) (update A (cdddr Rule) (cons (cadr Rule) New)))
+    	(T (update A (cdddr Rule) New))
 ))
 
 
@@ -192,39 +192,40 @@
         ((is_in (cadr Rule) Set) Set)        
 		(T (cons (cadr Rule) Set))
 	))
-    ((and (atom (cadr Rule)) (is_in (cons (cadr Rule) nil) Set)) (state_set_in_rule (cdddr Rule) Set))
-    ((atom (cadr Rule)) (state_set_in_rule (cdddr Rule) (cons (cons (cadr Rule)nil) Set)))           
+    	((and (atom (cadr Rule)) (is_in (cons (cadr Rule) nil) Set)) (state_set_in_rule (cdddr Rule) Set))
+    	((atom (cadr Rule)) (state_set_in_rule (cdddr Rule) (cons (cons (cadr Rule)nil) Set)))           
 	((is_in (cadr Rule) Set) (state_set_in_rule (cdddr Rule) Set))
 	(T (state_set_in_rule (cdddr Rule) (cons (cadr Rule) Set)))
 ))
 
 
 (defun state_set (L Set) (cond
-    ((null L) (to_list Set))
-    ((is_in (caar L) Set) (state_set (cdr L) Set))
-    (T (state_set (cdr L) (cons (caar L) Set)))
-                             ))
+	((null L) (to_list Set))
+	((is_in (caar L) Set) (state_set (cdr L) Set))
+	(T (state_set (cdr L) (cons (caar L) Set)))
+))
 
 
 (defun New_wo_Old (New Old) (cond
-    ((null New) New)
-    ((is_in (car New) Old) (new_wo_old (cdr New) Old))
-    (T (cons (car New) (new_wo_old (cdr new) old))
-                           )))
+    	((null New) New)
+    	((is_in (car New) Old) (new_wo_old (cdr New) Old))
+    	(T (cons (car New) (new_wo_old (cdr new) old)))
+))
 
 ; проверка на детерминированность
 (defun is_DKA (KA NewStates AllStates Flag) (cond
-    ((null KA) (cond 
-                   ((null NewStates)  Flag)
-                   (T (level 2 (new_wo_old NewStates AllStates)))
-    ))
-    ((and (check_rule (caddar KA) nil) (eq (null (cdar KA)) nil)) (cond
+    	((null KA) (cond 
+        	((null NewStates)  Flag)
+                (T (level 2 (new_wo_old NewStates AllStates)))
+    	))
+    	((and (check_rule (caddar KA) nil) (eq (null (cdar KA)) nil)) (cond
 	        ((null (caar KA)) (is_DKA (cdr KA) NewStates AllStates nil))
                 ((eq (is_DKA (cdr KA) NewStates AllStates Flag) T) T)
                 (T (cons (car KA) (is_DKA (cdr KA) NewStates AllStates nil)))
 	))
-    (T (cons (cons (caar KA) (cons '= (cons (level 2 (car (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil))) nil))) 
-			 (is_DKA (cdr KA) (cons (cdr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) NewStates) (cons (caadr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) ALLStates) nil)))
+    	(T (cons (cons (caar KA) (cons '= (cons (level 2 (car (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil))) nil))) 
+		(is_DKA (cdr KA) (cons (cdr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) NewStates) 
+		(cons (caadr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) ALLStates) nil)))
 ))
 
 ; проверяем правила на детерминированность
@@ -239,36 +240,36 @@
 ; проверяем, появились ли новые состояния после детерминирования
 (defun is_empty_new (Gram All) (cond
 	((null Gram) T)
-    ((null (cdar Gram)) (cond 
-                            ((is_in (caar Gram) All) (is_empty_new (cdr Gram) All))
-                            (T nil)
-                            ))
+   	((null (cdar Gram)) (cond 
+                ((is_in (caar Gram) All) (is_empty_new (cdr Gram) All))
+                (T nil)
+        ))
 	(T (is_empty_new (cdr Gram) All))
 ))
 
 
 (defun get_first_states (Gram Res) (cond
-    ((null Gram) Res)
-    (T (get_first_states (cdr Gram) (cons (caar Gram) Res)))
-                                       ))
+    	((null Gram) Res)
+    	(T (get_first_states (cdr Gram) (cons (caar Gram) Res)))
+))
 
 ; обновление новых состояний и либо возвращаем ДКА, либо еще раз детерминируем
 (defun update_states1 (Rules Full) (cond
-    ((is_empty_new (update_states (new_st Rules Full) Full) (get_first_states(level 2 (cons Full (cons (new_st Rules Full) nil)))nil)) (update_states (new_st Rules Full) Full))
-    (T (level 2 (cons (update_states1(state_set(to_new_states (update_states (new_st Rules Full) Full) nil (get_all_states (to_old_states (update_states (new_st Rules Full) Full) nil) nil))nil) (level 2 (cons Full (cons (to_old_states (update_states (new_st Rules Full) Full) nil)nil)))) (cons (to_old_states (update_states (new_st Rules Full) Full) nil) nil))))
+    	((is_empty_new (update_states (new_st Rules Full) Full) (get_first_states(level 2 (cons Full (cons (new_st Rules Full) nil)))nil)) (update_states (new_st Rules Full) Full))
+    	(T (level 2 (cons (update_states1(state_set(to_new_states (update_states (new_st Rules Full) Full) nil (get_all_states (to_old_states (update_states (new_st Rules Full) Full) nil) nil))nil) (level 2 (cons Full (cons (to_old_states (update_states (new_st Rules Full) Full) nil)nil)))) (cons (to_old_states (update_states (new_st Rules Full) Full) nil) nil))))
 ))
 
 
 (defun new_st (Rules Full) (cond
-    ((null Rules) Rules)
-    (T (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) (new_st (cdr Rules) Full)))
-                               ))
+    	((null Rules) Rules)
+    	(T (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) (new_st (cdr Rules) Full)))
+))
 
 
 ; обновляем правила для состояний
 (defun update_states (Rules Full) (cond
 	((null Rules) Rules)
-    ((is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
+    	((is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
 								(update_states (cdr Rules) Full)) nil) T) (is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
 								(update_states (cdr Rules) Full)) nil) nil))
 	(T (is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
@@ -279,7 +280,7 @@
 ; добавляем правила для новых состояний
 (defun update_state (State Rules) (cond
 	((null State) State)
-    (T (cons (find_state (car State) Rules nil) (update_state (cdr State) Rules)))
+    	(T (cons (find_state (car State) Rules nil) (update_state (cdr State) Rules)))
 ))       
 
 
@@ -336,7 +337,7 @@
 ; проход внутри правила, ищем "списковое" состояние.
 ; если списковое, то передаем на проверку
 (defun check_state_order (State Rule) (cond
-    ((null Rule) Rule)
+    	((null Rule) Rule)
 	((atom (car Rule)) (cons (car Rule) (check_state_order State (cdr Rule))))
 	(T (cons (is_equal (car Rule) State) (check_state_order State (cdr Rule))))
 ))
@@ -373,11 +374,11 @@
 ; 
 (defun check_final_state (Gram Flag Check) (cond
 	((null Gram) (cond
-                     (Flag '(((S S) = (#\* S))))
-                     (T Gram)
-                  ))
+	        (Flag '(((S S) = (#\* S))))
+                (T Gram)
+        ))
 	((= Check 0) (check_final_state Gram (if_S_in Gram) 1))
-    (T (cons (cons (caar Gram) (cons '= (cons (check_fin (caddar Gram) (caar Gram) Flag) nil))) (check_final_state (cdr Gram) Flag 1)))
+    	(T (cons (cons (caar Gram) (cons '= (cons (check_fin (caddar Gram) (caar Gram) Flag) nil))) (check_final_state (cdr Gram) Flag 1)))
 ))
 
 
@@ -414,9 +415,9 @@
 
 ; удаляем недостижимые
 (defun delete_non (Gram List) (cond
-    ((null Gram) Gram)
-    ((is_in (caar Gram) List) (cons (car Gram) (delete_non (cdr Gram) List)))
-    (T (delete_non (cdr Gram) List))
+    	((null Gram) Gram)
+    	((is_in (caar Gram) List) (cons (car Gram) (delete_non (cdr Gram) List)))
+    	(T (delete_non (cdr Gram) List))
 ))
 
 
@@ -430,14 +431,14 @@
 ; проходим по состояниям, которые являются достижимыми
 (defun find_others (Gram Reach AllReach) (cond
 	((null Reach)(cons '(H) AllReach))
-    ((null (find_one Gram (car Reach))) (find_others Gram (cdr Reach) AllReach))
+    	((null (find_one Gram (car Reach))) (find_others Gram (cdr Reach) AllReach))
 	(T (find_others Gram (cdr (updated_reach (find_one Gram (car Reach)) Reach AllReach)) (level 2 (cons AllReach (cons (updated_reach (find_one Gram (car Reach)) Reach AllReach) nil)))))
 ))
 
 
 ; находим состояния, в которые переходит текущее состояние из списка достижимых
 (defun find_one (Gram State) (cond
-    ((null Gram) nil)
+    	((null Gram) nil)
 	((check_similarity State (caar Gram)) (state_set_in_rule (caddar Gram) nil))
 	(T (find_one (cdr Gram) State))
 ))
@@ -445,8 +446,8 @@
 
 ; добавление в конец
 (defun add_to_end (El L) (cond
-    ((null L) (cons El nil))
-    (T (cons (car L) (add_to_end EL (cdr L))))
+    	((null L) (cons El nil))
+    	(T (cons (car L) (add_to_end EL (cdr L))))
 ))
 
 
@@ -466,7 +467,7 @@
         	(T 
         		(print '|non-deterministic|)
          		(let ((gram_with_S (delete_unreach(check_final_state(clear(unique_rules(level 2 (cons (update_states1 (state_set(to_new_states is_DKA_var nil (get_all_states (make_gram (make_rule KA nil) nil) nil))nil) (make_gram (make_rule KA nil) nil)) (cons (to_old_states is_DKA_var nil) nil)))nil) nil) nil 0))))
-                (print (gram_to_DKA gram_with_S))
+                	(print (gram_to_DKA gram_with_S))
          		(delete_S gram_with_S))
 ))))
 
