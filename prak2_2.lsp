@@ -270,10 +270,10 @@
 (defun update_states (Rules Full) (cond
 	((null Rules) Rules)
     	((is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
-								(update_states (cdr Rules) Full)) nil) T) (is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
-								(update_states (cdr Rules) Full)) nil) nil))
+		(update_states (cdr Rules) Full)) nil) T) (is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
+		(update_states (cdr Rules) Full)) nil) nil))
 	(T (is_DKA Rules nil (get_all_states (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) 
-								(update_states (cdr Rules) Full)) nil) T))
+		(update_states (cdr Rules) Full)) nil) T))
 ))
 
 
