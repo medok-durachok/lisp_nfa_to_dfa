@@ -8,12 +8,64 @@
   	(T (lvl (- N 1) (car S) (lvl N (cdr S) Res)))
 ))
 
+
 ; вычисление длины списка
 (defun len (L) (cond
 	((eq L nil) 1)
 	(T (+ 1 (len (cdr L))))
 ))
 
+
+; множество атомов
+(defun unique (Old New) (cond
+    	((null Old) New)
+    	((member (car Old) New) (unique (cdr Old) New))
+    	(T (unique (cdr Old) (cons (car Old) New)))
+))
+
+
+; множество состояний
+(defun state_set (L Set) (cond
+	((null L) (to_list Set))
+	((is_in (caar L) Set) (state_set (cdr L) Set))
+	(T (state_set (cdr L) (cons (caar L) Set)))
+))
+
+
+; проверка на наличие спискового элемента в списке списков
+(defun is_in (El L)(cond
+	((null L) nil)
+	((check_similarity El (car L)) T)
+	(T (is_in El (cdr L)))
+))
+
+
+; проверяем на равенство, чтобы вернуть список
+(defun is_equal (L1 L2) (cond
+	((eq (len L1) (len L2)) (is_similar_set L1 L2 L1))
+	(T L1)
+))
+
+
+; здесь проверяем, одинаковые ли длины, и если да, то передаем на проверку "равенства" списков, возвращаем T/nil
+(defun check_similarity (L1 L2) (cond
+	((eq (len L1) (len L2)) (is_similar_els L1 L2))
+))
+
+
+; проверяем списки на совпадение по множеству символов, возращает T/nil
+(defun is_similar_els (L1 L2) (cond
+	((null L1) T)
+	((member (car L1) L2) (is_similar_els (cdr L1) L2))
+))
+
+
+; проверка на совпадение по множеству для приведения (А В), (В А) —> (B A), (B A), возвращает список
+(defun is_similar_set (L1 L2 L1_not) (cond
+	((null L1) L2)
+	((member (car L1) L2) (is_similar_set (cdr L1) L2 L1_not))
+	(T L1_not)
+))
 ; --------------------------------------------
 
 ; БЛОК ПОЛУЧЕНИЯ ГРАММАТИКИ ПО КОНЕЧНОМУ АВТОМАТУ 
@@ -80,42 +132,6 @@
 ))
 
 
-; проверка на наличие спискового элемента в списке списков
-(defun is_in (El L)(cond
-	((null L) nil)
-	((check_similarity El (car L)) T)
-	(T (is_in El (cdr L)))
-))
-
-
-; проверяем на равенство, чтобы вернуть список
-(defun is_equal (L1 L2) (cond
-	((eq (len L1) (len L2)) (is_similar_set L1 L2 L1))
-	(T L1)
-))
-
-
-; здесь проверяем, одинаковые ли длины, и если да, то передаем на проверку "равенства" списков, возвращаем T/nil
-(defun check_similarity (L1 L2) (cond
-	((eq (len L1) (len L2)) (is_similar_els L1 L2))
-))
-
-
-; проверяем списки на совпадение по множеству символов
-(defun is_similar_els (L1 L2) (cond
-	((null L1) T)
-	((member (car L1) L2) (is_similar_els (cdr L1) L2))
-))
-
-
-; проверка на совпадение по множеству для приведения (А В), (В А) —> (B A), (B A)
-(defun is_similar_set (L1 L2 L1_not) (cond
-	((null L1) L2)
-	((member (car L1) L2) (is_similar_set (cdr L1) L2 L1_not))
-	(T L1_not)
-))
-
-
 ; удаляем S из грамматики после получения ДКА
 (defun delete_S (Gram) (cond
 	((null Gram) (print 'grammar) Gram)
@@ -141,13 +157,17 @@
 ))
 
 
+; применяем к каждому элементу
 (defun to_list_for_rule (r) (cons (car r) (cons (to_one_state (cadr r) nil)nil)))
 
+
+; оборачиваем списки внутри списка в nil
 (defun to_list (l) (cond
 	((null l) l)
     	(T (cons (cons (to_one_state (car l) nil) nil) (to_list (cdr l))))))
 
 
+; при обновлении приводим новое состояние к нормальному списочному виду (списку только из атомов)
 (defun to_one_state (State Atoms) (cond
     	((null State) (unique Atoms nil))
     	((atom (car State)) (to_one_state (cdr State) (cons (car State) Atoms)))
@@ -155,12 +175,7 @@
 ))
 
 
-(defun unique (Old New) (cond
-    	((null Old) New)
-    	((member (car Old) New) (unique (cdr Old) New))
-    	(T (unique (cdr Old) (cons (car Old) New)))
-))
-
+; обновляем правила для состояний, получаем новые в конце
 (defun update (A Rule New) (cond
     	((null (cddr Rule)) (cond 
 	    	((eq A (car Rule)) (cons (cons A (cons (cons (cadr Rule) New) nil)) (cons (cons (cadr  Rule) New) nil)))
@@ -199,18 +214,13 @@
 ))
 
 
-(defun state_set (L Set) (cond
-	((null L) (to_list Set))
-	((is_in (caar L) Set) (state_set (cdr L) Set))
-	(T (state_set (cdr L) (cons (caar L) Set)))
-))
-
-
+; получаем новые состояния без вхождения в этот список старых
 (defun New_wo_Old (New Old) (cond
     	((null New) New)
     	((is_in (car New) Old) (new_wo_old (cdr New) Old))
     	(T (cons (car New) (new_wo_old (cdr new) old)))
 ))
+
 
 ; проверка на детерминированность
 (defun is_DKA (KA NewStates AllStates Flag) (cond
@@ -227,6 +237,7 @@
 		(is_DKA (cdr KA) (cons (cdr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) NewStates) 
 		(cons (caadr (to_DKA (caddar KA) (set_in_rule (caddar KA) nil) nil nil)) ALLStates) nil)))
 ))
+
 
 ; проверяем правила на детерминированность
 (defun check_rule (Rule Unique) (cond
@@ -248,10 +259,12 @@
 ))
 
 
+; получение только "первых" состояний, т.е. левых частей грамматики
 (defun get_first_states (Gram Res) (cond
     	((null Gram) Res)
     	(T (get_first_states (cdr Gram) (cons (caar Gram) Res)))
 ))
+
 
 ; обновление новых состояний и либо возвращаем ДКА, либо еще раз детерминируем
 (defun update_states1 (Rules Full) (cond
@@ -260,6 +273,7 @@
 ))
 
 
+; для новых состояний получаем грамматику, т.е. набор правил 
 (defun new_st (Rules Full) (cond
     	((null Rules) Rules)
     	(T (cons (cons (caar Rules) (cons '= (cons (cdr (level 4 (update_state (caar Rules) Full))) nil))) (new_st (cdr Rules) Full)))
@@ -356,6 +370,7 @@
     	(T Rule))) 
 
 
+; проверка на вхождение только уникальных правил
 (defun unique_rules (Gram Set) (cond
 	((null Gram) Gram)
 	((is_in (caar Gram) Set) (unique_rules (cdr Gram) Set))
@@ -371,7 +386,7 @@
 ))
 
 
-; 
+; проверка для переименования конечного состояния
 (defun check_final_state (Gram Flag Check) (cond
 	((null Gram) (cond
 	        (Flag '(((S S) = (#\* S))))
